@@ -6,19 +6,99 @@ using System.Threading.Tasks;
 using Excel;
 using Modelleyici;
 using System.Data.SqlClient;
+using TEST.Models;
+
 namespace TEST
 {
     class Program
     {
         static void Main(string[] args)
         {
-            SQLTEST();
+            SqlSelectTest();
+            SQLInserTest();
+            SQLUpdateTest();
+            SQLDeleteTest();
         }
-        static void SQLTEST()
+        static void SqlSelectTest()
         {
-            var con = new SqlConnection();
-            con.Insert(new Models.sbptTest() { ID = 1, Isim = "atakan" });
-            var k = new List<string>();
+            using (var con=new SqlConnection(""))
+            {
+                /////////////
+                var y = new List<string>();
+                var us = con.Select<tUser>(ref y);
+                foreach (var u in us)
+                {
+                    Console.WriteLine($"ID: {u.ID} Name: {u.Name}");
+                }
+
+                ////////////////
+                var com = con.CreateCommand();
+                com.CommandText = "select top 1 * from tUser";
+                //Veri tabanındaki model ile eşleşmeyen alanlar
+                y = new List<string>();
+                var user=com.Degisken<tUser>(ref y);
+                Console.WriteLine($"ID: {user.ID} Name: {user.Name}");
+
+                ///////////////
+                y = new List<string>();
+                com.CommandText = "select * from tUser where ID>@ID";
+                com.Parameters.AddWithValue("@ID", 5);
+                var users = com.Liste<tUser>(ref y);
+                foreach (var u in users)
+                {
+                    Console.WriteLine($"ID: {u.ID} Name: {u.Name}");
+                }
+
+                /////////////
+                y = new List<string>();
+                com.CommandText = "select * from tUser";
+                com.Parameters.AddWithValue("@ID", 5);
+                var DicUsers = com.Liste();
+                foreach (var u in DicUsers)
+                {
+                    Console.WriteLine($"ID: {u["ID"]} Name: {u["Name"]}");
+                }
+                
+            }
+        }
+        static void SQLInserTest()
+        {
+            var user = new tUser()
+            {
+                ID = 1,
+                Name = "Atakan",
+                Password = "password",
+                UserName = "Asakura"
+            };
+            using (var con=new SqlConnection(""))
+            {
+                var UserID=con.Insert(user);
+            }
+        }
+        static void SQLUpdateTest()
+        {
+            var user = new tUser()
+            {
+                ID = 1,
+                Name = "Atakan Süslü",
+                Password = "password",
+                UserName = "Asakura"
+            };
+            using (var con = new SqlConnection(""))
+            {
+               var EfectedRowsCount=con.Update(user);
+            }
+        }
+        static void SQLDeleteTest()
+        {
+            var user = new tUser()
+            {
+                ID = 1
+            };
+            using (var con = new SqlConnection(""))
+            {
+                var EfectedRowsCount = con.Delete(user);
+            }
         }
         static void ExcelHucreCek()
         {

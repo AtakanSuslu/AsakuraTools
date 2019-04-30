@@ -160,6 +160,7 @@ namespace Modelleyici
             var rdr = com.ExecuteReader();
             var Sonuc = rdr.Degisken<T>(ref YakalanamayanAlanlar, BuyukKucukHarfDuyarli);
             rdr.Close();
+            com.Connection.Close();
             return Sonuc;
         }
         /// <summary>
@@ -174,6 +175,7 @@ namespace Modelleyici
             var rdr = com.ExecuteReader();
             var Sonuc = rdr.Degisken(BuyukKucukHarfDuyarli);
             rdr.Close();
+            com.Connection.Close();
             return Sonuc;
         }
         /// <summary>
@@ -189,6 +191,7 @@ namespace Modelleyici
             var rdr = com.ExecuteReader();
             var Sonuc = rdr.Liste<T>(ref YakalanamayanAlanlar, BuyukKucukHarfDuyarli);
             rdr.Close();
+            com.Connection.Close();
             return Sonuc;
         }
         /// <summary>
@@ -203,6 +206,7 @@ namespace Modelleyici
             var rdr = com.ExecuteReader();
             var Sonuc = rdr.Liste(BuyukKucukHarfDuyarli);
             rdr.Close();
+            com.Connection.Close();
             return Sonuc;
         }
         #endregion
@@ -287,7 +291,7 @@ namespace Modelleyici
             //typeMap[typeof(System.Data.Linq.Binary)] = DbType.Binary;
             return typeMap[t];
         }
-        public static int Insert<T>(this DbConnection con, T Kayit)
+        public static int Insert<T>(this DbConnection con, T Kayit,bool IdentityInsert=false)
         {
             var TabloIsmi = Kayit.GetType().Name.ToString();
             if (con.State == ConnectionState.Closed)
@@ -297,7 +301,7 @@ namespace Modelleyici
             var Propeties = Kayit.GetType().GetProperties();
             var SutunIsimleri = "";
             var ParametreIsimleri = "";
-            var Props = Propeties.Where(x => !Attribute.IsDefined(x, typeof(KeyAttribute)));
+            var Props = Propeties.Where(x => !Attribute.IsDefined(x, typeof(KeyAttribute))||IdentityInsert);
             foreach (var prop in Props)
             {
                 SutunIsimleri += "," + prop.Name;
@@ -392,10 +396,7 @@ namespace Modelleyici
         }
         public static List<T> Select<T>(this DbConnection con, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = false)
         {
-
             var TabloIsmi = typeof(T).Name.ToString();
-            if (con.State == ConnectionState.Closed)
-                con.Open();
             var com = con.CreateCommand();
             com.CommandText = string.Format("select *sutunlar from {0}", TabloIsmi);
             var Propeties = typeof(T).GetProperties();
