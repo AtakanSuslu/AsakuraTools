@@ -31,7 +31,7 @@ namespace Excel
                     Ozellikler = "Excel 12.0;HDR=YES;IMEX=1;";
                     break;
                 case IslemTipi.YAZMA:
-                    Ozellikler = "Excel 12.0;HDR=YES;";
+                    Ozellikler = "Excel 12.0;HDR=NO;";
                     if (!File.Exists(DosyaYolu))
                         File.Create(DosyaYolu);
                     break;
@@ -196,7 +196,20 @@ namespace Excel
         /// <param name="Deger">Yeni değer</param>
         public void GuncelleHucre(string TabloIsmi, string Range, string Deger)
         {
+            //HDR=NO
             com.CommandText = $"update [{TabloIsmi}${Range}] set F1='{Deger}'";
+            com.ExecuteNonQuery();
+        }
+        /// <summary>
+        /// İstenen hücreyi günceller
+        /// </summary>
+        /// <param name="TabloIsmi">Guncellenmek istenen tablo ismi.</param>
+        /// <param name="Range">Guncellenmek istenen hucrenin sutunu. (A1:A1)</param>
+        /// <param name="Deger">Yeni değer</param>
+        public void GuncelleHucre(string sql)
+        {
+            //HDR=YES
+            com.CommandText = sql;
             com.ExecuteNonQuery();
         }
         /// <summary>
