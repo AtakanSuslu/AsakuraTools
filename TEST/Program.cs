@@ -18,8 +18,7 @@ namespace TEST
             //SQLInserTest();
             //SQLUpdateTest();
             //SQLDeleteTest();
-            ExcelHucreCek();
-            Console.ReadKey();
+            UntitledTest();
         }
         static void SqlSelectTest()
         {
@@ -104,22 +103,27 @@ namespace TEST
         }
         static void ExcelHucreCek()
         {
-            try
-            {
-                ExcelBL bl = new ExcelBL("TEST.xlsx", IslemTipi.YAZMA);
-                //var test = bl.Hucre("Sayfa1", "A1:A3");
-                bl.GuncelleHucre("Sayfa1", "A1:A1", "ATAKANnnn");
-                //bl.GuncelleHucre("update [Sayfa1$] set Isim='test' where kod='150KMD0207A100001'");
-                bl.Kapat();
-                //Console.WriteLine(test);
-            }
-            catch (Exception e )
-            {
-                Console.WriteLine(e.Message);
-            }
-            
+            ExcelBL bl = new ExcelBL("TEST.xls", IslemTipi.OKUMA);
+            var test = bl.Hucre("Sayfa1", "A1:A3");
+            bl.Kapat();
             //com.Degisken<ExcelBL>(ref k);
             //bl.EkleBaslik(bl.GetType(),"Sayfa1");
+        }
+
+        static void UntitledTest()
+        {
+            var user = new tUser
+            {
+                ID = 1,
+                Name = "Atakan",
+                Password = "1234",
+                UserName = "Asakura"
+            };
+
+            var user2 = new tUser();
+
+            user2.Modelle(user);
+
         }
     }
 }

@@ -39,6 +39,9 @@ namespace Modelleyici
     #region #7-03.04.2019
     //Connection nesnesinden generic classlar ile Değişken(tek kayıt) extension metodları yazıldı
     #endregion
+    #region #8-16.06.2019
+    //IgnoreColumn attribute ile normalde veritabanında olmayan alanlardan sorun çıkması engellendi
+    #endregion
     public static class Cevir
     {
         #region DataReader
@@ -57,6 +60,7 @@ namespace Modelleyici
             var Propeties = Kayit.GetType().GetProperties();
             foreach (var prop in Propeties)
             {
+                if (prop.GetCustomAttributes(typeof(IgnoreColumn), false).Count() > 0) continue;
                 dynamic val;
                 if (DicKayit.TryGetValue(BuyukKucukHarfDuyarli ? prop.Name : prop.Name.ToLower(), out val))
                     prop.SetValue(Kayit, val);
@@ -105,6 +109,7 @@ namespace Modelleyici
                 var model = Activator.CreateInstance<T>();
                 foreach (var prop in Propeties)
                 {
+                    if (prop.GetCustomAttributes(typeof(IgnoreColumn), false).Count() > 0) continue;
                     dynamic val;
                     if (Kayit.TryGetValue(BuyukKucukHarfDuyarli ? prop.Name : prop.Name.ToLower(), out val))
                         prop.SetValue(model, val);
@@ -212,7 +217,7 @@ namespace Modelleyici
         #endregion
 
         #region Connection
-        public static Dictionary<string, dynamic> Degisken<T>(this SqlConnection con, T Kayit,bool BuyukKucukHarfDuyarli =false)
+        public static Dictionary<string, dynamic> Degisken<T>(this SqlConnection con, T Kayit, bool BuyukKucukHarfDuyarli = false)
         {
             Dictionary<string, dynamic> Sonuc;
             if (con.State.Equals(ConnectionState.Closed))
@@ -223,9 +228,12 @@ namespace Modelleyici
             var Propeties = typeof(T).GetProperties();
             var SutunIsimleri = "";
 
-            
+
             foreach (var prop in Propeties)
+            {
+                if (prop.GetCustomAttributes(typeof(IgnoreColumn), false).Count() > 0) continue;
                 SutunIsimleri += "," + prop.Name;
+            }
             SutunIsimleri = SutunIsimleri.Substring(1);
             com.CommandText = com.CommandText.Replace("*sutunlar", SutunIsimleri);
 
@@ -233,8 +241,8 @@ namespace Modelleyici
 
             if (key == null)
                 Sonuc = com.Degisken(BuyukKucukHarfDuyarli);
-            else if (Convert.ToInt32(key.GetValue(Kayit)) <= 0)
-                Sonuc = com.Degisken(BuyukKucukHarfDuyarli);
+            //else if (Convert.ToInt32(key.GetValue(Kayit)) <= 0)
+            //    Sonuc = com.Degisken(BuyukKucukHarfDuyarli);
             else
             {
                 //Key özellikli bir alan varsa ve değeri 0 dan büyük ise sadece o kaydı cek
@@ -249,6 +257,7 @@ namespace Modelleyici
         public static void Degisken<T>(this SqlConnection con, ref T Kayit, bool BuyukKucukHarfDuyarli = false)
         {
             var Dic = con.Degisken(Kayit, BuyukKucukHarfDuyarli);
+            if (Dic == null) return;
             Kayit = Dic.Modelle<T>();
         }
         private static DbType ConvertTypeToDBtype(Type t)
@@ -291,7 +300,7 @@ namespace Modelleyici
             //typeMap[typeof(System.Data.Linq.Binary)] = DbType.Binary;
             return typeMap[t];
         }
-        public static int Insert<T>(this DbConnection con, T Kayit,bool IdentityInsert=false)
+        public static int Insert<T>(this DbConnection con, T Kayit, bool IdentityInsert = false)
         {
             var TabloIsmi = Kayit.GetType().Name.ToString();
             if (con.State == ConnectionState.Closed)
@@ -301,9 +310,10 @@ namespace Modelleyici
             var Propeties = Kayit.GetType().GetProperties();
             var SutunIsimleri = "";
             var ParametreIsimleri = "";
-            var Props = Propeties.Where(x => !Attribute.IsDefined(x, typeof(KeyAttribute))||IdentityInsert);
+            var Props = Propeties.Where(x => !Attribute.IsDefined(x, typeof(KeyAttribute)) || IdentityInsert);
             foreach (var prop in Props)
             {
+                if (prop.GetCustomAttributes(typeof(IgnoreColumn), false).Count() > 0) continue;
                 SutunIsimleri += "," + prop.Name;
                 ParametreIsimleri += ",@" + prop.Name;
                 var prm = com.CreateParameter();
@@ -349,13 +359,14 @@ namespace Modelleyici
 
             var GuncelleStr = "";
             var Props = Propeties.Where(x => !Attribute.IsDefined(x, typeof(KeyAttribute)));
-            foreach (var item in Props)
+            foreach (var prop in Props)
             {
-                GuncelleStr += $",{item.Name}=@{item.Name}";
+                if (prop.GetCustomAttributes(typeof(IgnoreColumn), false).Count() > 0) continue;
+                GuncelleStr += $",{prop.Name}=@{prop.Name}";
                 prm = com.CreateParameter();
-                prm.Value = Convert.ChangeType(item.GetValue(Kayit), item.PropertyType);
-                prm.DbType = ConvertTypeToDBtype(item.PropertyType);
-                prm.ParameterName = "@" + item.Name;
+                prm.Value = Convert.ChangeType(prop.GetValue(Kayit), prop.PropertyType);
+                prm.DbType = ConvertTypeToDBtype(prop.PropertyType);
+                prm.ParameterName = "@" + prop.Name;
                 com.Parameters.Add(prm);
             }
             GuncelleStr = GuncelleStr.Substring(1);
@@ -402,7 +413,10 @@ namespace Modelleyici
             var Propeties = typeof(T).GetProperties();
             var SutunIsimleri = "";
             foreach (var prop in Propeties)
+            {
+                if (prop.GetCustomAttributes(typeof(IgnoreColumn), false).Count() > 0) continue;
                 SutunIsimleri += "," + prop.Name;
+            }
             SutunIsimleri = SutunIsimleri.Substring(1);
             com.CommandText = com.CommandText.Replace("*sutunlar", SutunIsimleri);
             return com.Liste<T>(ref YakalanamayanAlanlar, BuyukKucukHarfDuyarli);
@@ -412,10 +426,19 @@ namespace Modelleyici
         public static T Modelle<T>(this Dictionary<string, dynamic> dic)
         {
             var Sonuc = Activator.CreateInstance<T>();
-            foreach (var item in Sonuc.GetType().GetProperties())
-                if (dic.ContainsKey(item.Name))
-                    item.SetValue(Sonuc, Convert.ChangeType(dic[item.Name], item.PropertyType));
+            foreach (var prop in Sonuc.GetType().GetProperties())
+            {
+                if (prop.GetCustomAttributes(typeof(IgnoreColumn), false).Count() > 0) continue;
+                if (dic.ContainsKey(prop.Name) && dic[prop.Name] != null)
+                    prop.SetValue(Sonuc, Convert.ChangeType(dic[prop.Name], prop.PropertyType));
+            }
             return Sonuc;
+        }
+
+        public static void Modelle<T>(this T a, T b)
+        {
+            foreach (var p in a.GetType().GetProperties())
+                p.SetValue(a, p.GetValue(b));
         }
     }
 }

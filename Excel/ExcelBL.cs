@@ -196,19 +196,17 @@ namespace Excel
         /// <param name="Deger">Yeni değer</param>
         public void GuncelleHucre(string TabloIsmi, string Range, string Deger)
         {
-            //HDR=NO
+            //HDR NO
             com.CommandText = $"update [{TabloIsmi}${Range}] set F1='{Deger}'";
             com.ExecuteNonQuery();
         }
         /// <summary>
         /// İstenen hücreyi günceller
         /// </summary>
-        /// <param name="TabloIsmi">Guncellenmek istenen tablo ismi.</param>
-        /// <param name="Range">Guncellenmek istenen hucrenin sutunu. (A1:A1)</param>
-        /// <param name="Deger">Yeni değer</param>
+        /// <param name="sql"></param>
         public void GuncelleHucre(string sql)
         {
-            //HDR=YES
+            //HDR YES
             com.CommandText = sql;
             com.ExecuteNonQuery();
         }

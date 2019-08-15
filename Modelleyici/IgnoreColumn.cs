@@ -2,11 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Modelleyici
 {
-    public class IgnoreColumn:Attribute
-    {
-
-    }
+    public class IgnoreColumn:Attribute{}
 }
