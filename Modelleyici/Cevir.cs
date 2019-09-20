@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Modelleyici
 {
@@ -40,7 +41,7 @@ namespace Modelleyici
     //Connection nesnesinden generic classlar ile Değişken(tek kayıt) extension metodları yazıldı
     #endregion
     #region #8-16.06.2019
-    //IgnoreColumn attribute ile normalde veritabanında olmayan alanlardan sorun çıkması engellendi
+    //NotMappedAttribute attribute ile normalde veritabanında olmayan alanlardan sorun çıkması engellendi
     #endregion
     public static class Cevir
     {
@@ -51,7 +52,7 @@ namespace Modelleyici
         /// <typeparam name="T">Geri Dönüş Tipi</typeparam>
         /// <param name="rdr">Veri tabanı Datareader nesnesi</param>
         /// <returns></returns>
-        public static T Degisken<T>(this DbDataReader rdr, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = false) where T : class
+        public static T Degisken<T>(this DbDataReader rdr, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = true) where T : class
         {
             var DicKayit = rdr.Degisken(BuyukKucukHarfDuyarli);
             var Kayit = Activator.CreateInstance<T>();
@@ -60,7 +61,7 @@ namespace Modelleyici
             var Propeties = Kayit.GetType().GetProperties();
             foreach (var prop in Propeties)
             {
-                if (prop.GetCustomAttributes(typeof(IgnoreColumn), false).Count() > 0) continue;
+                if (prop.GetCustomAttributes(typeof(NotMappedAttribute), false).Count() > 0) continue;
                 dynamic val;
                 if (DicKayit.TryGetValue(BuyukKucukHarfDuyarli ? prop.Name : prop.Name.ToLower(), out val))
                     prop.SetValue(Kayit, val);
@@ -73,7 +74,7 @@ namespace Modelleyici
         /// </summary>
         /// <param name="rdr">Veri tabanı Datareader nesnesi</param>
         /// <returns></returns>
-        public static Dictionary<string, dynamic> Degisken(this DbDataReader rdr, bool BuyukKucukHarfDuyarli = false)
+        public static Dictionary<string, dynamic> Degisken(this DbDataReader rdr, bool BuyukKucukHarfDuyarli = true)
         {
 
             if (!rdr.Read())
@@ -99,7 +100,7 @@ namespace Modelleyici
         /// <typeparam name="T">Geri Dönüş Tipi</typeparam>
         /// <param name="rdr">Veri tabanı Datareader nesnesi</param>
         /// <returns></returns>
-        public static List<T> Liste<T>(this DbDataReader rdr, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = false)
+        public static List<T> Liste<T>(this DbDataReader rdr, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = true)
         {
             var Kayitlar = rdr.Liste(BuyukKucukHarfDuyarli);
             var Sonuc = new List<T>();
@@ -109,7 +110,7 @@ namespace Modelleyici
                 var model = Activator.CreateInstance<T>();
                 foreach (var prop in Propeties)
                 {
-                    if (prop.GetCustomAttributes(typeof(IgnoreColumn), false).Count() > 0) continue;
+                    if (prop.GetCustomAttributes(typeof(NotMappedAttribute), false).Count() > 0) continue;
                     dynamic val;
                     if (Kayit.TryGetValue(BuyukKucukHarfDuyarli ? prop.Name : prop.Name.ToLower(), out val))
                         prop.SetValue(model, val);
@@ -127,7 +128,7 @@ namespace Modelleyici
         /// </summary>
         /// <param name="rdr">Veri tabanı Datareader nesnesi</param>
         /// <returns></returns>
-        public static List<Dictionary<string, dynamic>> Liste(this DbDataReader rdr, bool BuyukKucukHarfDuyarli = false)
+        public static List<Dictionary<string, dynamic>> Liste(this DbDataReader rdr, bool BuyukKucukHarfDuyarli = true)
         {
             var Sonuc = new List<Dictionary<string, dynamic>>();
             var KolonSayisi = rdr.FieldCount;
@@ -158,7 +159,7 @@ namespace Modelleyici
         /// <typeparam name="T">Geri Dönüş Tipi</typeparam>
         /// <param name="rdr">Veri tabanı Datareader nesnesi</param>
         /// <returns></returns>
-        public static T Degisken<T>(this DbCommand com, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = false) where T : class
+        public static T Degisken<T>(this DbCommand com, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = true) where T : class
         {
             if (com.Connection.State == ConnectionState.Closed)
                 com.Connection.Open();
@@ -173,7 +174,7 @@ namespace Modelleyici
         /// </summary>
         /// <param name="rdr">Veri tabanı Datareader nesnesi</param>
         /// <returns></returns>
-        public static Dictionary<string, dynamic> Degisken(this DbCommand com, bool BuyukKucukHarfDuyarli = false)
+        public static Dictionary<string, dynamic> Degisken(this DbCommand com, bool BuyukKucukHarfDuyarli = true)
         {
             if (com.Connection.State == ConnectionState.Closed)
                 com.Connection.Open();
@@ -189,7 +190,7 @@ namespace Modelleyici
         /// <typeparam name="T">Geri Dönüş Tipi</typeparam>
         /// <param name="rdr">Veri tabanı Datareader nesnesi</param>
         /// <returns></returns>
-        public static List<T> Liste<T>(this DbCommand com, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = false)
+        public static List<T> Liste<T>(this DbCommand com, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = true)
         {
             if (com.Connection.State == ConnectionState.Closed)
                 com.Connection.Open();
@@ -204,7 +205,7 @@ namespace Modelleyici
         /// </summary>
         /// <param name="rdr">Veri tabanı Datareader nesnesi</param>
         /// <returns></returns>
-        public static List<Dictionary<string, dynamic>> Liste(this DbCommand com, bool BuyukKucukHarfDuyarli = false)
+        public static List<Dictionary<string, dynamic>> Liste(this DbCommand com, bool BuyukKucukHarfDuyarli = true)
         {
             if (com.Connection.State == ConnectionState.Closed)
                 com.Connection.Open();
@@ -217,7 +218,7 @@ namespace Modelleyici
         #endregion
 
         #region Connection
-        public static Dictionary<string, dynamic> Degisken<T>(this SqlConnection con, T Kayit, bool BuyukKucukHarfDuyarli = false)
+        public static Dictionary<string, dynamic> Degisken<T>(this SqlConnection con, T Kayit, bool BuyukKucukHarfDuyarli = true)
         {
             Dictionary<string, dynamic> Sonuc;
             if (con.State.Equals(ConnectionState.Closed))
@@ -231,7 +232,7 @@ namespace Modelleyici
 
             foreach (var prop in Propeties)
             {
-                if (prop.GetCustomAttributes(typeof(IgnoreColumn), false).Count() > 0) continue;
+                if (prop.GetCustomAttributes(typeof(NotMappedAttribute), false).Count() > 0) continue;
                 SutunIsimleri += "," + prop.Name;
             }
             SutunIsimleri = SutunIsimleri.Substring(1);
@@ -254,12 +255,7 @@ namespace Modelleyici
             con.Close();
             return Sonuc;
         }
-        public static void Degisken<T>(this SqlConnection con, ref T Kayit, bool BuyukKucukHarfDuyarli = false)
-        {
-            var Dic = con.Degisken(Kayit, BuyukKucukHarfDuyarli);
-            if (Dic == null) return;
-            Kayit = Dic.Modelle<T>();
-        }
+
         private static DbType ConvertTypeToDBtype(Type t)
         {
             var typeMap = new Dictionary<Type, DbType>();
@@ -313,7 +309,7 @@ namespace Modelleyici
             var Props = Propeties.Where(x => !Attribute.IsDefined(x, typeof(KeyAttribute)) || IdentityInsert);
             foreach (var prop in Props)
             {
-                if (prop.GetCustomAttributes(typeof(IgnoreColumn), false).Count() > 0) continue;
+                if (prop.GetCustomAttributes(typeof(NotMappedAttribute), false).Count() > 0) continue;
                 SutunIsimleri += "," + prop.Name;
                 ParametreIsimleri += ",@" + prop.Name;
                 var prm = com.CreateParameter();
@@ -361,7 +357,7 @@ namespace Modelleyici
             var Props = Propeties.Where(x => !Attribute.IsDefined(x, typeof(KeyAttribute)));
             foreach (var prop in Props)
             {
-                if (prop.GetCustomAttributes(typeof(IgnoreColumn), false).Count() > 0) continue;
+                if (prop.GetCustomAttributes(typeof(NotMappedAttribute), false).Count() > 0) continue;
                 GuncelleStr += $",{prop.Name}=@{prop.Name}";
                 prm = com.CreateParameter();
                 prm.Value = Convert.ChangeType(prop.GetValue(Kayit), prop.PropertyType);
@@ -405,7 +401,7 @@ namespace Modelleyici
             con.Close();
             return Sonuc;
         }
-        public static List<T> Select<T>(this DbConnection con, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = false)
+        public static List<T> Select<T>(this DbConnection con, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = true)
         {
             var TabloIsmi = typeof(T).Name.ToString();
             var com = con.CreateCommand();
@@ -414,12 +410,18 @@ namespace Modelleyici
             var SutunIsimleri = "";
             foreach (var prop in Propeties)
             {
-                if (prop.GetCustomAttributes(typeof(IgnoreColumn), false).Count() > 0) continue;
+                if (prop.GetCustomAttributes(typeof(NotMappedAttribute), false).Count() > 0) continue;
                 SutunIsimleri += "," + prop.Name;
             }
             SutunIsimleri = SutunIsimleri.Substring(1);
             com.CommandText = com.CommandText.Replace("*sutunlar", SutunIsimleri);
             return com.Liste<T>(ref YakalanamayanAlanlar, BuyukKucukHarfDuyarli);
+        }
+        public static void Degisken<T>(this SqlConnection con, ref T Kayit, bool BuyukKucukHarfDuyarli = true)
+        {
+            var Dic = con.Degisken(Kayit, BuyukKucukHarfDuyarli);
+            if (Dic == null) return;
+            Kayit = Dic.Modelle<T>();
         }
         #endregion
 
@@ -428,7 +430,7 @@ namespace Modelleyici
             var Sonuc = Activator.CreateInstance<T>();
             foreach (var prop in Sonuc.GetType().GetProperties())
             {
-                if (prop.GetCustomAttributes(typeof(IgnoreColumn), false).Count() > 0) continue;
+                if (prop.GetCustomAttributes(typeof(NotMappedAttribute), false).Count() > 0) continue;
                 if (dic.ContainsKey(prop.Name) && dic[prop.Name] != null)
                     prop.SetValue(Sonuc, Convert.ChangeType(dic[prop.Name], prop.PropertyType));
             }
