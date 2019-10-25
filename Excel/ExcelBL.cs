@@ -41,11 +41,10 @@ namespace Excel
             con.Open();
             com.Connection = con;
         }
-        public List<Dictionary<string,dynamic>> test(string TabloIsmi, string Range = "", bool Trim = true, bool WhiteSpace = false)
+        public List<Dictionary<string,dynamic>> Tablo(string TabloIsmi, string Range = "", bool Trim = true, bool WhiteSpace = false)
         {
             com.CommandText = $"select * from [{TabloIsmi}${Range}]";
             return com.Liste();
-            
         }
         public List<Dictionary<string, dynamic>> ORKUN(string TabloIsmi, string Range = "", bool Trim = true, bool WhiteSpace = false)
         {
