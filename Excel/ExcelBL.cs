@@ -96,8 +96,10 @@ namespace Excel
         /// <param name="Range">Çekilmek istenen kayıtlar hangi sutunlar arasında. (A1:F3)</param>
         /// <param name="Trim">Boşluklar silinsin mi</param>
         /// <returns></returns>
-        public List<T> Tablo<T>(string TabloIsmi, string Range = "", bool Trim = true,bool WhiteSpace=false)
+        public List<T> Tablo<T>(string TabloIsmi="", string Range = "", bool Trim = true,bool WhiteSpace=false)
         {
+            if (string.IsNullOrEmpty(TabloIsmi))
+                TabloIsmi = typeof(T).Name;
             List<T> Sonuc = new List<T>();
             com.CommandText = $"select * from [{TabloIsmi}${Range}]";
             var rdr = com.ExecuteReader();

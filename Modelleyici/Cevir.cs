@@ -52,9 +52,9 @@ namespace Modelleyici
         /// <typeparam name="T">Geri Dönüş Tipi</typeparam>
         /// <param name="rdr">Veri tabanı Datareader nesnesi</param>
         /// <returns></returns>
-        public static T Degisken<T>(this DbDataReader rdr, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = true) where T : class
+        public static T Degisken<T>(this DbDataReader rdr, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = true, bool ConvertType = true) where T : class
         {
-            var DicKayit = rdr.Degisken(BuyukKucukHarfDuyarli);
+            var DicKayit = rdr.Degisken(BuyukKucukHarfDuyarli,ConvertType:ConvertType);
             var Kayit = Activator.CreateInstance<T>();
             if (DicKayit == null)
                 return null;
@@ -74,7 +74,7 @@ namespace Modelleyici
         /// </summary>
         /// <param name="rdr">Veri tabanı Datareader nesnesi</param>
         /// <returns></returns>
-        public static Dictionary<string, dynamic> Degisken(this DbDataReader rdr, bool BuyukKucukHarfDuyarli = true)
+        public static Dictionary<string, dynamic> Degisken(this DbDataReader rdr, bool BuyukKucukHarfDuyarli = true, bool ConvertType = true)
         {
 
             if (!rdr.Read())
@@ -87,8 +87,14 @@ namespace Modelleyici
                 var Kolon = rdr.GetName(i);
                 var oDeger = rdr.GetValue(i);
                 object Deger = null;
-                if (oDeger != null && oDeger != DBNull.Value)
-                    Deger = Convert.ChangeType(oDeger, Tip);
+                if (ConvertType)
+                {
+                    if (oDeger != null && oDeger != DBNull.Value)
+                        Deger = Convert.ChangeType(oDeger, Tip);
+                }
+                else
+                    Deger = oDeger.ToString();
+
                 Sonuc.Add(BuyukKucukHarfDuyarli ? Kolon : Kolon.ToLower(), Deger);
             }
             rdr.Close();
@@ -159,12 +165,12 @@ namespace Modelleyici
         /// <typeparam name="T">Geri Dönüş Tipi</typeparam>
         /// <param name="rdr">Veri tabanı Datareader nesnesi</param>
         /// <returns></returns>
-        public static T Degisken<T>(this DbCommand com, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = true) where T : class
+        public static T Degisken<T>(this DbCommand com, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = true,bool ConvertType=true) where T : class
         {
             if (com.Connection.State == ConnectionState.Closed)
                 com.Connection.Open();
             var rdr = com.ExecuteReader();
-            var Sonuc = rdr.Degisken<T>(ref YakalanamayanAlanlar, BuyukKucukHarfDuyarli);
+            var Sonuc = rdr.Degisken<T>(ref YakalanamayanAlanlar, BuyukKucukHarfDuyarli,ConvertType);
             rdr.Close();
             com.Connection.Close();
             return Sonuc;
@@ -174,12 +180,12 @@ namespace Modelleyici
         /// </summary>
         /// <param name="rdr">Veri tabanı Datareader nesnesi</param>
         /// <returns></returns>
-        public static Dictionary<string, dynamic> Degisken(this DbCommand com, bool BuyukKucukHarfDuyarli = true)
+        public static Dictionary<string, dynamic> Degisken(this DbCommand com, bool BuyukKucukHarfDuyarli = true,bool ConvertType =true)
         {
             if (com.Connection.State == ConnectionState.Closed)
                 com.Connection.Open();
             var rdr = com.ExecuteReader();
-            var Sonuc = rdr.Degisken(BuyukKucukHarfDuyarli);
+            var Sonuc = rdr.Degisken(BuyukKucukHarfDuyarli,ConvertType);
             rdr.Close();
             com.Connection.Close();
             return Sonuc;
@@ -218,7 +224,7 @@ namespace Modelleyici
         #endregion
 
         #region Connection
-        public static Dictionary<string, dynamic> Degisken<T>(this SqlConnection con, T Kayit, bool BuyukKucukHarfDuyarli = true)
+        public static Dictionary<string, dynamic> Degisken<T>(this SqlConnection con, T Kayit, bool BuyukKucukHarfDuyarli = true,bool ConvertType=true)
         {
             Dictionary<string, dynamic> Sonuc;
             if (con.State.Equals(ConnectionState.Closed))
@@ -241,7 +247,7 @@ namespace Modelleyici
             var key = Kayit.GetType().GetProperties().FirstOrDefault(x => Attribute.IsDefined(x, typeof(KeyAttribute)));
 
             if (key == null)
-                Sonuc = com.Degisken(BuyukKucukHarfDuyarli);
+                Sonuc = com.Degisken(BuyukKucukHarfDuyarli, ConvertType);
             //else if (Convert.ToInt32(key.GetValue(Kayit)) <= 0)
             //    Sonuc = com.Degisken(BuyukKucukHarfDuyarli);
             else
@@ -249,7 +255,7 @@ namespace Modelleyici
                 //Key özellikli bir alan varsa ve değeri 0 dan büyük ise sadece o kaydı cek
                 com.CommandText += string.Format(" where {0}=@{0}", key.Name);
                 com.Parameters.AddWithValue("@" + key.Name, Convert.ToInt32(key.GetValue(Kayit)));
-                Sonuc = com.Degisken(BuyukKucukHarfDuyarli);
+                Sonuc = com.Degisken(BuyukKucukHarfDuyarli, ConvertType);
             }
             com.Dispose();
             con.Close();
@@ -321,20 +327,23 @@ namespace Modelleyici
             SutunIsimleri = SutunIsimleri.Substring(1);
             ParametreIsimleri = ParametreIsimleri.Substring(1);
             com.CommandText = com.CommandText.Replace("*sutunlar", SutunIsimleri).Replace("*degerler", ParametreIsimleri);
-            try
-            {
-                var ID = Convert.ToInt32(com.ExecuteScalar());
-                com.Dispose();
-                con.Close();
-                return ID;
-            }
-            catch (Exception e)
-            {
-                com.Dispose();
-                con.Close();
-                return 0;
-            }
-         
+            //try
+            //{
+            //    var ID = Convert.ToInt32(com.ExecuteScalar());
+            //    com.Dispose();
+            //    con.Close();
+            //    return ID;
+            //}
+            //catch (Exception e)
+            //{
+            //    com.Dispose();
+            //    con.Close();
+            //    return 0;
+            //}
+            com.ExecuteNonQuery();
+            com.Dispose();
+            con.Close();
+            return 0;
         }
         public static string Insert<T>(this DbConnection con, List<T> KayitList, bool IdentityInsert = false)
         {
@@ -437,9 +446,9 @@ namespace Modelleyici
             com.CommandText = com.CommandText.Replace("*sutunlar", SutunIsimleri);
             return com.Liste<T>(ref YakalanamayanAlanlar, BuyukKucukHarfDuyarli);
         }
-        public static void Degisken<T>(this SqlConnection con, ref T Kayit, bool BuyukKucukHarfDuyarli = true)
+        public static void Degisken<T>(this SqlConnection con, ref T Kayit, bool BuyukKucukHarfDuyarli = true,bool ConvertType =true)
         {
-            var Dic = con.Degisken(Kayit, BuyukKucukHarfDuyarli);
+            var Dic = con.Degisken(Kayit, BuyukKucukHarfDuyarli,ConvertType);
             if (Dic == null) return;
             Kayit = Dic.Modelle<T>();
         }
