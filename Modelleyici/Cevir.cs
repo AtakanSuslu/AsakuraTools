@@ -321,10 +321,20 @@ namespace Modelleyici
             SutunIsimleri = SutunIsimleri.Substring(1);
             ParametreIsimleri = ParametreIsimleri.Substring(1);
             com.CommandText = com.CommandText.Replace("*sutunlar", SutunIsimleri).Replace("*degerler", ParametreIsimleri);
-            var ID = Convert.ToInt32(com.ExecuteScalar());
-            com.Dispose();
-            con.Close();
-            return ID;
+            try
+            {
+                var ID = Convert.ToInt32(com.ExecuteScalar());
+                com.Dispose();
+                con.Close();
+                return ID;
+            }
+            catch (Exception e)
+            {
+                com.Dispose();
+                con.Close();
+                return 0;
+            }
+         
         }
         public static string Insert<T>(this DbConnection con, List<T> KayitList, bool IdentityInsert = false)
         {
