@@ -326,6 +326,16 @@ namespace Modelleyici
             con.Close();
             return ID;
         }
+        public static string Insert<T>(this DbConnection con, List<T> KayitList, bool IdentityInsert = false)
+        {
+            var Result = "";
+            foreach (var Kayit in KayitList)
+            {
+                var ID = con.Insert(Kayit, IdentityInsert: IdentityInsert);
+                Result += $",{ID}";
+            }
+            return Result.Substring(1);
+        }
         public static int Update<T>(this DbConnection con, T Kayit)
         {
             var TabloIsmi = Kayit.GetType().Name.ToString();
