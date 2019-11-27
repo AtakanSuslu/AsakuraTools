@@ -359,9 +359,10 @@ namespace Modelleyici
             }
             return Result.Substring(1);
         }
-        public static int Update<T>(this DbConnection con, T Kayit)
+        public static int Update<T>(this DbConnection con, T Kayit,string TabloIsmi="")
         {
-            var TabloIsmi = Kayit.GetType().Name.ToString();
+            if (string.IsNullOrEmpty(TabloIsmi))
+                TabloIsmi = Kayit.GetType().Name.ToString();
             if (con.State == ConnectionState.Closed)
                 con.Open();
             var com = con.CreateCommand();
