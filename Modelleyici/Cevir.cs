@@ -306,17 +306,44 @@ namespace Modelleyici
             //typeMap[typeof(System.Data.Linq.Binary)] = DbType.Binary;
             return typeMap[t];
         }
+        private static void Execute(this DbConnection con,string ExecutableQuery)
+        {
+            if (con.State != ConnectionState.Open)
+                con.Open();
+            var com = con.CreateCommand();
+            com.CommandText=ExecutableQuery;
+            com.ExecuteNonQuery();
+            com.Dispose();
+        }
+        public static string GetScalar(this DbConnection con, string Query) 
+        {
+            if (con.State != ConnectionState.Open)
+                con.Open();
+            var com = con.CreateCommand();
+            com.CommandText = Query;
+            var result= com.ExecuteScalar().ToString();
+            com.Dispose();
+            return result;
+        }
         public static int Insert<T>(this DbConnection con, T Kayit, bool IdentityInsert = false)
         {
+            int res = 0;
             var TabloIsmi = Kayit.GetType().Name.ToString();
+            var IdentityCount = int.Parse(con.GetScalar($"SELECT count(*) FROM sys.identity_columns WHERE OBJECT_NAME(object_id) = '{TabloIsmi}'"));
             if (con.State == ConnectionState.Closed)
                 con.Open();
             var com = con.CreateCommand();
-            com.CommandText = string.Format("insert into {0} (*sutunlar) values (*degerler); select @@identity", TabloIsmi);
+            var InsertText = string.Format("insert into {0} (*sutunlar) values (*degerler);", TabloIsmi);
+            if (IdentityCount > 0)
+                InsertText += "select @@identity";
+            com.CommandText = InsertText;
             var Propeties = Kayit.GetType().GetProperties();
             var SutunIsimleri = "";
             var ParametreIsimleri = "";
+            //Eğer IdentityIsnert false ise key olan sutunları insert etme
             var Props = Propeties.Where(x => !Attribute.IsDefined(x, typeof(KeyAttribute)) || IdentityInsert);
+            if (IdentityInsert)
+                con.Execute($"SET IDENTITY_INSERT {TabloIsmi} ON");
             foreach (var prop in Props)
             {
                 if (prop.GetCustomAttributes(typeof(NotMappedAttribute), false).Count() > 0) continue;
@@ -331,23 +358,14 @@ namespace Modelleyici
             SutunIsimleri = SutunIsimleri.Substring(1);
             ParametreIsimleri = ParametreIsimleri.Substring(1);
             com.CommandText = com.CommandText.Replace("*sutunlar", SutunIsimleri).Replace("*degerler", ParametreIsimleri);
-            //try
-            //{
-            //    var ID = Convert.ToInt32(com.ExecuteScalar());
-            //    com.Dispose();
-            //    con.Close();
-            //    return ID;
-            //}
-            //catch (Exception e)
-            //{
-            //    com.Dispose();
-            //    con.Close();
-            //    return 0;
-            //}
-            com.ExecuteNonQuery();
+
+            if (IdentityCount>0)
+                res = Convert.ToInt32(com.ExecuteScalar());
+            else
+                com.ExecuteNonQuery();
             com.Dispose();
             con.Close();
-            return 0;
+            return res;
         }
         public static string Insert<T>(this DbConnection con, List<T> KayitList, bool IdentityInsert = false)
         {
