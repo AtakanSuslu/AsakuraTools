@@ -126,7 +126,6 @@ namespace Modelleyici
             if (Kayitlar.Count.Equals(0))
                 return Sonuc;
             YakalanamayanAlanlar.AddRange(Kayitlar[0].Keys.ToList().Where(x => Propeties.FirstOrDefault(y => (BuyukKucukHarfDuyarli ? y.Name : y.Name.ToLower()).Equals(x)) == null).ToArray());
-            rdr.Close();
             return Sonuc;
         }
         /// <summary>
@@ -306,7 +305,7 @@ namespace Modelleyici
             //typeMap[typeof(System.Data.Linq.Binary)] = DbType.Binary;
             return typeMap[t];
         }
-        private static void Execute(this DbConnection con,string ExecutableQuery)
+        private static void execute(this DbConnection con,string ExecutableQuery)
         {
             if (con.State != ConnectionState.Open)
                 con.Open();
@@ -314,6 +313,16 @@ namespace Modelleyici
             com.CommandText=ExecutableQuery;
             com.ExecuteNonQuery();
             com.Dispose();
+        }
+        public static void Execute(this DbConnection con, string ExecutableQuery)
+        {
+            if (con.State != ConnectionState.Open)
+                con.Open();
+            var com = con.CreateCommand();
+            com.CommandText = ExecutableQuery;
+            com.ExecuteNonQuery();
+            com.Dispose();
+            con.Close();
         }
         public static string GetScalar(this DbConnection con, string Query) 
         {
@@ -343,10 +352,13 @@ namespace Modelleyici
             //Eğer IdentityIsnert false ise key olan sutunları insert etme
             var Props = Propeties.Where(x => !Attribute.IsDefined(x, typeof(KeyAttribute)) || IdentityInsert);
             if (IdentityInsert)
-                con.Execute($"SET IDENTITY_INSERT {TabloIsmi} ON");
+                con.execute($"SET IDENTITY_INSERT {TabloIsmi} ON");
             foreach (var prop in Props)
             {
                 if (prop.GetCustomAttributes(typeof(NotMappedAttribute), false).Count() > 0) continue;
+                var val = prop.GetValue(Kayit);
+                if (val == null)
+                    continue;
                 SutunIsimleri += "," + prop.Name;
                 ParametreIsimleri += ",@" + prop.Name;
                 var prm = com.CreateParameter();
@@ -359,13 +371,21 @@ namespace Modelleyici
             ParametreIsimleri = ParametreIsimleri.Substring(1);
             com.CommandText = com.CommandText.Replace("*sutunlar", SutunIsimleri).Replace("*degerler", ParametreIsimleri);
 
-            if (IdentityCount>0)
-                res = Convert.ToInt32(com.ExecuteScalar());
-            else
-                com.ExecuteNonQuery();
+            try
+            {
+                if (IdentityCount > 0)
+                    res = Convert.ToInt32(com.ExecuteScalar());
+                else
+                    com.ExecuteNonQuery();
+            }
+            catch (Exception e)
+            {
+
+            }
+           
             com.Dispose();
             con.Close();
-            return res;
+            return res; 
         }
         public static string Insert<T>(this DbConnection con, List<T> KayitList, bool IdentityInsert = false)
         {
@@ -377,15 +397,65 @@ namespace Modelleyici
             }
             return Result.Substring(1);
         }
+        public static string Insert(this DbConnection con, List<Dictionary<string,dynamic>> KayitList,string TabloIsmi, bool IdentityInsert = false)
+        {
+            var Result = "";
+            foreach (var Kayit in KayitList)
+            {
+                var ID = con.Insert(Kayit, TabloIsmi,  IdentityInsert: IdentityInsert);
+                Result += $",{ID}";
+            }
+            return Result.Substring(1);
+        }
+        public static int Insert(this DbConnection con, Dictionary<string,dynamic> Kayit,string TabloIsmi, bool IdentityInsert = false)
+        {
+            int res = 0;
+            var IdentityCount = int.Parse(con.GetScalar($"SELECT count(*) FROM sys.identity_columns WHERE OBJECT_NAME(object_id) = '{TabloIsmi}'"));
+            if (con.State == ConnectionState.Closed)
+                con.Open();
+            var com = con.CreateCommand();
+            var InsertText = string.Format("insert into {0} (*sutunlar) values (*degerler);", TabloIsmi);
+            if (IdentityCount > 0)
+                InsertText += "select @@identity";
+            com.CommandText = InsertText;
+
+            var SutunIsimleri = "";
+            var ParametreIsimleri = "";
+            foreach (var prop in Kayit)
+            {
+                var val = prop.Value;
+                if (val == null)
+                    continue;
+                SutunIsimleri += $",[{prop.Key}]";
+                ParametreIsimleri += $",@{prop.Key}".Replace(" ","");
+                var prm = com.CreateParameter();
+                prm.DbType = ConvertTypeToDBtype(typeof(string));
+                prm.Value = val.ToString();
+                prm.ParameterName = $"@{prop.Key}".Replace(" ","");
+                com.Parameters.Add(prm);
+            }
+            SutunIsimleri = SutunIsimleri.Substring(1);
+            ParametreIsimleri = ParametreIsimleri.Substring(1);
+            com.CommandText = com.CommandText.Replace("*sutunlar", SutunIsimleri).Replace("*degerler", ParametreIsimleri);
+
+            if (IdentityCount > 0)
+                res = Convert.ToInt32(com.ExecuteScalar());
+            else
+                com.ExecuteNonQuery();
+            com.Dispose();
+            con.Close();
+            return res;
+        }
         public static int Update<T>(this DbConnection con, T Kayit,string TabloIsmi="")
         {
+            var Tip = typeof(T);
             if (string.IsNullOrEmpty(TabloIsmi))
-                TabloIsmi = Kayit.GetType().Name.ToString();
+                TabloIsmi = Tip.Name;
             if (con.State == ConnectionState.Closed)
                 con.Open();
             var com = con.CreateCommand();
             com.CommandText = string.Format("update {0} set *upt where *kosul", TabloIsmi);
-            var Propeties = Kayit.GetType().GetProperties();
+            var Propeties = Tip.GetProperties();
 
 
             var KeyProp = Propeties.FirstOrDefault(x => Attribute.IsDefined(x, typeof(KeyAttribute)));
@@ -428,12 +498,13 @@ namespace Modelleyici
         }
         public static int Delete<T>(this DbConnection con, T Kayit)
         {
-            var TabloIsmi = Kayit.GetType().Name.ToString();
+            var Tip = typeof(T);
+            var TabloIsmi = Tip.Name;
             if (con.State == ConnectionState.Closed)
                 con.Open();
             var com = con.CreateCommand();
             com.CommandText = string.Format("delete from {0} where *sutun=*deger", TabloIsmi);
-            var Propeties = Kayit.GetType().GetProperties();
+            var Propeties = Tip.GetProperties();
             var SutunIsimleri = "";
             var ParametreIsimleri = "";
             var prop = Propeties.FirstOrDefault(x => Attribute.IsDefined(x, typeof(KeyAttribute)));
@@ -448,6 +519,39 @@ namespace Modelleyici
             prm.ParameterName = "@" + prop.Name;
             com.Parameters.Add(prm);
             com.CommandText = com.CommandText.Replace("*sutun", SutunIsimleri).Replace("*deger", ParametreIsimleri);
+            var Sonuc = com.ExecuteNonQuery();
+            com.Dispose();
+            con.Close();
+            return Sonuc;
+        }
+        public static int Delete<T>(this DbConnection con, List<T> Kayit)
+        {
+            var Tip = typeof(T);
+            var TabloIsmi = Tip.Name;
+            if (con.State == ConnectionState.Closed)
+                con.Open();
+            var com = con.CreateCommand();
+            com.CommandText = string.Format("delete from {0} where *sutun in (*deger)", TabloIsmi);
+            var Propeties = Tip.GetProperties();
+            var SutunIsimleri = "";
+            var ParametreIsimleri = "";
+            var prop = Propeties.FirstOrDefault(x => Attribute.IsDefined(x, typeof(KeyAttribute)));
+            if (prop == null)
+                return 0;
+
+            SutunIsimleri += "" + prop.Name;
+            ParametreIsimleri += "@" + prop.Name;
+            var prm = com.CreateParameter();
+
+            var prmValue = "";
+            foreach (var item in Kayit)
+                prmValue += string.Format(",'{0}'", prop.GetValue(item).ToString());
+
+            prm.Value = prmValue;
+            prm.DbType = ConvertTypeToDBtype(prop.PropertyType);
+            prm.ParameterName = "@" + prop.Name;
+            com.Parameters.Add(prm);
+            com.CommandText = com.CommandText.Replace("*sutuBn", SutunIsimleri).Replace("*deger", ParametreIsimleri);
             var Sonuc = com.ExecuteNonQuery();
             com.Dispose();
             con.Close();
