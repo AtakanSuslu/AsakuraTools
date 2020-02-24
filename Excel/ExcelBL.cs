@@ -109,7 +109,7 @@ namespace Excel
                 var Kayit = Activator.CreateInstance<T>();
                 foreach (var prop in Kayit.GetType().GetProperties())
                 {
-                    var Deger = "";
+                    object Deger = null;
                     if (prop.CustomAttributes.Count(x=>x.AttributeType.Name.Equals("atrTabloDisi"))>0)
                         continue;
                     try
@@ -119,14 +119,17 @@ namespace Excel
                             SutunIsmi.Replace("_", " ");
                         Deger = Trim ? rdr[SutunIsmi].ToString().Trim() : rdr[SutunIsmi].ToString();
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
-                        Deger = "";
+
                     }
-                    
-                    prop.SetValue(Kayit, Deger);
-                    if (!Deger.Equals(""))
+
+
+                    if (Deger != null)
+                    {
+                        prop.SetValue(Kayit, Convert.ChangeType(Deger, prop.PropertyType));
                         Kontrol = true;
+                    }
                 }
                 if (Kontrol)
                 {
