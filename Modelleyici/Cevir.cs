@@ -76,7 +76,6 @@ namespace Modelleyici
         /// <returns></returns>
         public static Dictionary<string, dynamic> Degisken(this DbDataReader rdr, bool BuyukKucukHarfDuyarli = true, bool ConvertType = true)
         {
-
             if (!rdr.Read())
                 return null;
             var KolonSayisi = rdr.FieldCount;
@@ -87,14 +86,11 @@ namespace Modelleyici
                 var Kolon = rdr.GetName(i);
                 var oDeger = rdr.GetValue(i);
                 object Deger = null;
-                if (ConvertType)
-                {
-                    if (oDeger != null && oDeger != DBNull.Value)
+                if (oDeger != null && oDeger != DBNull.Value)
+                    if (ConvertType)
                         Deger = Convert.ChangeType(oDeger, Tip);
-                }
-                else
-                    Deger = oDeger.ToString();
-
+                    else
+                        Deger = oDeger.ToString();
                 Sonuc.Add(BuyukKucukHarfDuyarli ? Kolon : Kolon.ToLower(), Deger);
             }
             rdr.Close();
@@ -199,12 +195,12 @@ namespace Modelleyici
         /// <typeparam name="T">Geri Dönüş Tipi</typeparam>
         /// <param name="rdr">Veri tabanı Datareader nesnesi</param>
         /// <returns></returns>
-        public static List<T> Liste<T>(this DbCommand com, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = true,bool ConvertType=true)
+        public static List<T> Liste<T>(this DbCommand com, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = true, bool ConvertType = true)
         {
             if (com.Connection.State == ConnectionState.Closed)
                 com.Connection.Open();
             var rdr = com.ExecuteReader();
-            var Sonuc = rdr.Liste<T>(ref YakalanamayanAlanlar, BuyukKucukHarfDuyarli,ConvertType);
+            var Sonuc = rdr.Liste<T>(ref YakalanamayanAlanlar, BuyukKucukHarfDuyarli, ConvertType);
             rdr.Close();
             com.Connection.Close();
             return Sonuc;
@@ -214,12 +210,12 @@ namespace Modelleyici
         /// </summary>
         /// <param name="rdr">Veri tabanı Datareader nesnesi</param>
         /// <returns></returns>
-        public static List<Dictionary<string, dynamic>> Liste(this DbCommand com, bool BuyukKucukHarfDuyarli = true,bool ConvertType=true)
+        public static List<Dictionary<string, dynamic>> Liste(this DbCommand com, bool BuyukKucukHarfDuyarli = true, bool ConvertType = true)
         {
             if (com.Connection.State == ConnectionState.Closed)
                 com.Connection.Open();
             var rdr = com.ExecuteReader();
-            var Sonuc = rdr.Liste(BuyukKucukHarfDuyarli,ConvertType);
+            var Sonuc = rdr.Liste(BuyukKucukHarfDuyarli, ConvertType);
             rdr.Close();
             com.Connection.Close();
             return Sonuc;
@@ -305,12 +301,12 @@ namespace Modelleyici
             //typeMap[typeof(System.Data.Linq.Binary)] = DbType.Binary;
             return typeMap[t];
         }
-        private static void execute(this DbConnection con,string ExecutableQuery)
+        private static void execute(this DbConnection con, string ExecutableQuery)
         {
             if (con.State != ConnectionState.Open)
                 con.Open();
             var com = con.CreateCommand();
-            com.CommandText=ExecutableQuery;
+            com.CommandText = ExecutableQuery;
             com.ExecuteNonQuery();
             com.Dispose();
         }
@@ -324,13 +320,13 @@ namespace Modelleyici
             com.Dispose();
             con.Close();
         }
-        public static string GetScalar(this DbConnection con, string Query) 
+        public static string GetScalar(this DbConnection con, string Query)
         {
             if (con.State != ConnectionState.Open)
                 con.Open();
             var com = con.CreateCommand();
             com.CommandText = Query;
-            var result= com.ExecuteScalar().ToString();
+            var result = com.ExecuteScalar().ToString();
             com.Dispose();
             return result;
         }
@@ -382,10 +378,10 @@ namespace Modelleyici
             {
 
             }
-           
+
             com.Dispose();
             con.Close();
-            return res; 
+            return res;
         }
         public static string Insert<T>(this DbConnection con, List<T> KayitList, bool IdentityInsert = false)
         {
@@ -397,17 +393,17 @@ namespace Modelleyici
             }
             return Result.Substring(1);
         }
-        public static string Insert(this DbConnection con, List<Dictionary<string,dynamic>> KayitList,string TabloIsmi, bool IdentityInsert = false)
+        public static string Insert(this DbConnection con, List<Dictionary<string, dynamic>> KayitList, string TabloIsmi, bool IdentityInsert = false)
         {
             var Result = "";
             foreach (var Kayit in KayitList)
             {
-                var ID = con.Insert(Kayit, TabloIsmi,  IdentityInsert: IdentityInsert);
+                var ID = con.Insert(Kayit, TabloIsmi, IdentityInsert: IdentityInsert);
                 Result += $",{ID}";
             }
             return Result.Substring(1);
         }
-        public static int Insert(this DbConnection con, Dictionary<string,dynamic> Kayit,string TabloIsmi, bool IdentityInsert = false)
+        public static int Insert(this DbConnection con, Dictionary<string, dynamic> Kayit, string TabloIsmi, bool IdentityInsert = false)
         {
             int res = 0;
             var IdentityCount = int.Parse(con.GetScalar($"SELECT count(*) FROM sys.identity_columns WHERE OBJECT_NAME(object_id) = '{TabloIsmi}'"));
@@ -427,11 +423,11 @@ namespace Modelleyici
                 if (val == null)
                     continue;
                 SutunIsimleri += $",[{prop.Key}]";
-                ParametreIsimleri += $",@{prop.Key}".Replace(" ","");
+                ParametreIsimleri += $",@{prop.Key}".Replace(" ", "");
                 var prm = com.CreateParameter();
                 prm.DbType = ConvertTypeToDBtype(typeof(string));
                 prm.Value = val.ToString();
-                prm.ParameterName = $"@{prop.Key}".Replace(" ","");
+                prm.ParameterName = $"@{prop.Key}".Replace(" ", "");
                 com.Parameters.Add(prm);
             }
             SutunIsimleri = SutunIsimleri.Substring(1);
@@ -446,7 +442,7 @@ namespace Modelleyici
             con.Close();
             return res;
         }
-        public static int Update<T>(this DbConnection con, T Kayit,string TabloIsmi="")
+        public static int Update<T>(this DbConnection con, T Kayit, string TabloIsmi = "")
         {
             var Tip = typeof(T);
             if (string.IsNullOrEmpty(TabloIsmi))
@@ -557,7 +553,7 @@ namespace Modelleyici
             con.Close();
             return Sonuc;
         }
-        public static List<T> Select<T>(this DbConnection con, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = true,bool ConvertType=true)
+        public static List<T> Select<T>(this DbConnection con, ref List<string> YakalanamayanAlanlar, bool BuyukKucukHarfDuyarli = true, bool ConvertType = true)
         {
             var TabloIsmi = typeof(T).Name.ToString();
             var com = con.CreateCommand();
@@ -571,7 +567,7 @@ namespace Modelleyici
             }
             SutunIsimleri = SutunIsimleri.Substring(1);
             com.CommandText = com.CommandText.Replace("*sutunlar", SutunIsimleri);
-            return com.Liste<T>(ref YakalanamayanAlanlar, BuyukKucukHarfDuyarli,ConvertType);
+            return com.Liste<T>(ref YakalanamayanAlanlar, BuyukKucukHarfDuyarli, ConvertType);
         }
         public static void Degisken<T>(this SqlConnection con, ref T Kayit, bool BuyukKucukHarfDuyarli = true, bool ConvertType = true)
         {
@@ -597,6 +593,25 @@ namespace Modelleyici
         {
             foreach (var p in a.GetType().GetProperties())
                 p.SetValue(a, p.GetValue(b));
+        }
+        public static Dictionary<string, dynamic> Modelle<T>(this T a)
+        {
+            var dic = new Dictionary<string, dynamic>();
+            foreach (var prop in a.GetType().GetProperties())
+            {
+                if (prop.GetCustomAttributes(typeof(NotMappedAttribute), false).Count() > 0) continue;
+                if (!dic.ContainsKey(prop.Name))
+                    dic.Add(prop.Name, prop.GetValue(a, null));
+            }
+            return dic;
+        }
+        public static Y Modelle<Y, T>(this T a)
+        {
+            var Dic = new Dictionary<string, dynamic>();
+            foreach (var p in a.GetType().GetProperties())
+                Dic.Add(p.Name, p.GetValue(a));
+            var Res = Dic.Modelle<Y>();
+            return Res;
         }
     }
 }
