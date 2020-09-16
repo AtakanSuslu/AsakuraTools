@@ -76,8 +76,20 @@ namespace Modelleyici
         /// <returns></returns>
         public static Dictionary<string, dynamic> Degisken(this DbDataReader rdr, bool BuyukKucukHarfDuyarli = true, bool ConvertType = true)
         {
-            if (!rdr.Read())
-                return null;
+            try
+            {
+                if (!rdr.Read())
+                {
+                    rdr.Close();
+                    return null;
+                }
+            }
+            catch (Exception e)
+            {
+                rdr.Close();
+                throw e;
+            }
+           
             var KolonSayisi = rdr.FieldCount;
             var Sonuc = new Dictionary<string, dynamic>();
             for (int i = 0; i < KolonSayisi; i++)
@@ -133,25 +145,34 @@ namespace Modelleyici
         {
             var Sonuc = new List<Dictionary<string, dynamic>>();
             var KolonSayisi = rdr.FieldCount;
-            while (rdr.Read())
+            try
             {
-                var Kayit = new Dictionary<string, dynamic>();
-                for (int i = 0; i < KolonSayisi; i++)
+                while (rdr.Read())
                 {
-                    var Tip = rdr.GetFieldType(i);
-                    var Kolon = rdr.GetName(i);
-                    var oDeger = rdr.GetValue(i);
-                    object Deger = null;
-                    if (ConvertType)
+                    var Kayit = new Dictionary<string, dynamic>();
+                    for (int i = 0; i < KolonSayisi; i++)
                     {
-                        if (oDeger != null && oDeger != DBNull.Value)
-                            Deger = Convert.ChangeType(oDeger, Tip);
+                        var Tip = rdr.GetFieldType(i);
+                        var Kolon = rdr.GetName(i);
+                        var oDeger = rdr.GetValue(i);
+                        object Deger = null;
+                        if (ConvertType)
+                        {
+                            if (oDeger != null && oDeger != DBNull.Value)
+                                Deger = Convert.ChangeType(oDeger, Tip);
+                        }
+                        else Deger = oDeger.ToString();
+                        Kayit.Add(BuyukKucukHarfDuyarli ? Kolon : Kolon.ToLower(), Deger);
                     }
-                    else Deger = oDeger.ToString();
-                    Kayit.Add(BuyukKucukHarfDuyarli ? Kolon : Kolon.ToLower(), Deger);
+                    Sonuc.Add(Kayit);
                 }
-                Sonuc.Add(Kayit);
             }
+            catch (Exception e)
+            {
+                rdr.Close();
+                throw e;
+            }
+           
             rdr.Close();
             return Sonuc;
         }
@@ -320,21 +341,22 @@ namespace Modelleyici
             com.Dispose();
             con.Close();
         }
-        public static string GetScalar(this DbConnection con, string Query)
+        public static object GetScalar(this DbConnection con, string Query)
         {
             if (con.State != ConnectionState.Open)
                 con.Open();
             var com = con.CreateCommand();
             com.CommandText = Query;
-            var result = com.ExecuteScalar().ToString();
+            var result = com.ExecuteScalar();
             com.Dispose();
+            con.Close();
             return result;
         }
         public static int Insert<T>(this DbConnection con, T Kayit, bool IdentityInsert = false)
         {
             int res = 0;
             var TabloIsmi = Kayit.GetType().Name.ToString();
-            var IdentityCount = int.Parse(con.GetScalar($"SELECT count(*) FROM sys.identity_columns WHERE OBJECT_NAME(object_id) = '{TabloIsmi}'"));
+            var IdentityCount = Convert.ToInt32(con.GetScalar($"SELECT count(*) FROM sys.identity_columns WHERE OBJECT_NAME(object_id) = '{TabloIsmi}'"));
             if (con.State == ConnectionState.Closed)
                 con.Open();
             var com = con.CreateCommand();
@@ -376,12 +398,14 @@ namespace Modelleyici
             }
             catch (Exception e)
             {
-
+                com.Dispose();
+                con.Close();
+                throw e;
             }
-
             com.Dispose();
             con.Close();
             return res;
+
         }
         public static string Insert<T>(this DbConnection con, List<T> KayitList, bool IdentityInsert = false)
         {
@@ -406,7 +430,7 @@ namespace Modelleyici
         public static int Insert(this DbConnection con, Dictionary<string, dynamic> Kayit, string TabloIsmi, bool IdentityInsert = false)
         {
             int res = 0;
-            var IdentityCount = int.Parse(con.GetScalar($"SELECT count(*) FROM sys.identity_columns WHERE OBJECT_NAME(object_id) = '{TabloIsmi}'"));
+            var IdentityCount = Convert.ToInt32(con.GetScalar($"SELECT count(*) FROM sys.identity_columns WHERE OBJECT_NAME(object_id) = '{TabloIsmi}'"));
             if (con.State == ConnectionState.Closed)
                 con.Open();
             var com = con.CreateCommand();
@@ -605,7 +629,7 @@ namespace Modelleyici
             }
             return dic;
         }
-        public static Y Modelle<Y, T>(this T a)
+        public static Y Modelle<Y,T>(this T a)
         {
             var Dic = new Dictionary<string, dynamic>();
             foreach (var p in a.GetType().GetProperties())

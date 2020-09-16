@@ -29,6 +29,7 @@ namespace Excel
             {
                 case IslemTipi.OKUMA:
                     Ozellikler = "Excel 12.0;HDR=YES;IMEX=1;";
+                    //Ozellikler = "Excel 12.0;HDR=NO;";
                     break;
                 case IslemTipi.YAZMA:
                     Ozellikler = "Excel 12.0;HDR=NO;";
