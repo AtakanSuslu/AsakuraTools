@@ -7,6 +7,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Modelleyici;
+using System.Reflection;
 
 namespace Excel
 {
@@ -42,7 +43,7 @@ namespace Excel
             con.Open();
             com.Connection = con;
         }
-        public List<Dictionary<string,dynamic>> Tablo(string TabloIsmi, string Range = "", bool Trim = true, bool WhiteSpace = false)
+        public List<Dictionary<string, dynamic>> Tablo(string TabloIsmi, string Range = "", bool Trim = true, bool WhiteSpace = false)
         {
             com.CommandText = $"select * from [{TabloIsmi}${Range}]";
             return com.Liste();
@@ -64,7 +65,7 @@ namespace Excel
                     var Kolon = rdr.GetName(i);
                     var oDeger = rdr.GetValue(i);
                     object Deger = null;
-                    if (Kolon== "Müş.Sip.Fiş Kodları")
+                    if (Kolon == "Müş.Sip.Fiş Kodları")
                     {
                         Type t = typeof(string);
                         var gereksiz = 0;
@@ -78,10 +79,10 @@ namespace Excel
                         if (oDeger != null && oDeger != DBNull.Value)
                             Deger = Convert.ChangeType(oDeger, Tip);
                     }
-                
-                  
-                    
-                    Kayit.Add(Kolon.ToLower(),Deger);
+
+
+
+                    Kayit.Add(Kolon.ToLower(), Deger);
                 }
                 Sonuc.Add(Kayit);
             }
@@ -97,12 +98,50 @@ namespace Excel
         /// <param name="Range">Çekilmek istenen kayıtlar hangi sutunlar arasında. (A1:F3)</param>
         /// <param name="Trim">Boşluklar silinsin mi</param>
         /// <returns></returns>
-        public List<T> Tablo<T>(string TabloIsmi="", string Range = "", bool Trim = true,bool WhiteSpace=false)
+        public List<T> Tablo<T>(string TabloIsmi = "", string Range = "",bool ConvertType=true)
+        {
+            if (string.IsNullOrEmpty(TabloIsmi))
+                TabloIsmi = typeof(T).Name;
+            com.CommandText = $"select * from [{TabloIsmi}${Range}]";
+            var y = new List<string>();
+            var Sonuc = com.Liste<T>(ref y,ConvertType:ConvertType);
+            for (int i = 0; i < Sonuc.Count; i++)
+            {
+                int j = 0;
+                var propCount = typeof(T).GetProperties().Count();
+                foreach (PropertyInfo item in typeof(T).GetProperties())
+                {
+                    var val = item.GetValue(Sonuc[i]);
+                    var val2 = item.GetValue(Activator.CreateInstance<T>());
+                    if (object.Equals(val, val2))
+                        j++;   
+                }
+                if (j==propCount)
+                {
+                    Sonuc.RemoveRange(i, Sonuc.Count - i);
+                    return Sonuc;
+                }
+            }
+            return Sonuc;
+        }
+        /// <summary>
+        /// Girilen sutunlar arasındaki kayıtları çek
+        /// Kullanılmıyor
+        /// </summary>
+        /// <typeparam name="T">Model Tipi</typeparam>
+        /// <param name="TabloIsmi">Kayıtların çekilmek istendiği tablo ismi. Boş geçilirse modelin adı yazılır.</param>
+        /// <param name="Range">Çekilmek istenen kayıtlar hangi sutunlar arasında. (A1:F3)</param>
+        /// <param name="Trim">Boşluklar silinsin mi</param>
+        /// <returns></returns>
+        public List<T> TabloEski<T>(string TabloIsmi = "", string Range = "", bool Trim = true, bool WhiteSpace = false)
         {
             if (string.IsNullOrEmpty(TabloIsmi))
                 TabloIsmi = typeof(T).Name;
             List<T> Sonuc = new List<T>();
             com.CommandText = $"select * from [{TabloIsmi}${Range}]";
+            var y = new List<string>();
+            var sonuc = com.Liste<T>(ref y);
+            con.Open();
             var rdr = com.ExecuteReader();
             while (rdr.Read())
             {
@@ -111,14 +150,19 @@ namespace Excel
                 foreach (var prop in Kayit.GetType().GetProperties())
                 {
                     object Deger = null;
-                    if (prop.CustomAttributes.Count(x=>x.AttributeType.Name.Equals("atrTabloDisi"))>0)
+                    if (prop.CustomAttributes.Count(x => x.AttributeType.Name.Equals("atrTabloDisi")) > 0)
                         continue;
                     try
                     {
                         var SutunIsmi = prop.Name;
                         if (WhiteSpace)
                             SutunIsmi.Replace("_", " ");
-                        Deger = Trim ? rdr[SutunIsmi].ToString().Trim() : rdr[SutunIsmi].ToString();
+                        var test = rdr.GetOrdinal(SutunIsmi);
+                        Deger = rdr[SutunIsmi];
+
+                        if (Deger != null)
+                            Deger = Trim ? Deger.ToString().Trim() : Deger.ToString();
+
                     }
                     catch (Exception e)
                     {
@@ -137,7 +181,7 @@ namespace Excel
                     int bos = 0;
                     foreach (var prop in Kayit.GetType().GetProperties())
                     {
-                        if (prop.GetValue(Kayit)!=null&&prop.GetValue(Kayit).Equals(""))
+                        if (prop.GetValue(Kayit) != null && prop.GetValue(Kayit).Equals(""))
                         {
                             bos++;
                             //prop.SetValue(Kayit, "11");
@@ -147,7 +191,7 @@ namespace Excel
                     {
 
                     }
-                   
+
                     Sonuc.Add(Kayit);
                 }
 
@@ -272,10 +316,10 @@ namespace Excel
         /// <param name="TabloIsmi">Kayıtların eklenmek istendiği tablo ismi. Boş geçilirse modelin adı yazılır.</param>
         public void EkleBaslik(Type Kayit, string TabloIsmi = "")
         {
-            
+
             var _con = con.ConnectionString;
             con.Close();
-            var Ozellikler  = "Excel 12.0;HDR=NO;";
+            var Ozellikler = "Excel 12.0;HDR=NO;";
             con.ConnectionString = $"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={DosyaYolu};Extended Properties=\"{Ozellikler}\"";
             con.Open();
             com.Connection = con;
