@@ -15,14 +15,10 @@ namespace TEST
     {
         static void Main(string[] args)
         {
-            //SqlSelectTest();
-            //SQLInserTest();
-            //SQLUpdateTest();
-            //SQLDeleteTest();
-            //ExcelYaz();
-            serializeobject();
-            GC.Collect();
-            Console.Read();
+            SqlSelectTest();
+            SQLInserTest();
+            SQLUpdateTest();
+            SQLDeleteTest();
         }
         static void ExcelYaz()
         {
