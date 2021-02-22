@@ -212,7 +212,7 @@ namespace Modelleyici
         #endregion
 
         #region Connection
-        public static Dictionary<string, dynamic> Degisken<T>(this SqlConnection con, T Kayit,bool BuyukKucukHarfDuyarli =false)
+        public static Dictionary<string, dynamic> Degisken<T>(this SqlConnection con, T Kayit, bool BuyukKucukHarfDuyarli = false)
         {
             Dictionary<string, dynamic> Sonuc;
             if (con.State.Equals(ConnectionState.Closed))
@@ -223,7 +223,7 @@ namespace Modelleyici
             var Propeties = typeof(T).GetProperties();
             var SutunIsimleri = "";
 
-            
+
             foreach (var prop in Propeties)
                 SutunIsimleri += "," + prop.Name;
             SutunIsimleri = SutunIsimleri.Substring(1);
@@ -291,7 +291,7 @@ namespace Modelleyici
             //typeMap[typeof(System.Data.Linq.Binary)] = DbType.Binary;
             return typeMap[t];
         }
-        public static int Insert<T>(this DbConnection con, T Kayit,bool IdentityInsert=false)
+        public static int Insert<T>(this DbConnection con, T Kayit, bool IdentityInsert = false)
         {
             var TabloIsmi = Kayit.GetType().Name.ToString();
             if (con.State == ConnectionState.Closed)
@@ -301,7 +301,7 @@ namespace Modelleyici
             var Propeties = Kayit.GetType().GetProperties();
             var SutunIsimleri = "";
             var ParametreIsimleri = "";
-            var Props = Propeties.Where(x => !Attribute.IsDefined(x, typeof(KeyAttribute))||IdentityInsert);
+            var Props = Propeties.Where(x => !Attribute.IsDefined(x, typeof(KeyAttribute)) || IdentityInsert);
             foreach (var prop in Props)
             {
                 SutunIsimleri += "," + prop.Name;
@@ -416,6 +416,101 @@ namespace Modelleyici
                 if (dic.ContainsKey(item.Name))
                     item.SetValue(Sonuc, Convert.ChangeType(dic[item.Name], item.PropertyType));
             return Sonuc;
+        }
+
+        public static string JsonSerializeObject<T>(T asd, bool IgnoreIfNull = false)
+        {
+            if (asd == null)
+                return "";
+            string Tirnak = "";
+            var sonuc = new List<string>();
+            try
+            {
+                foreach (var item in asd.GetType().GetProperties())
+                {
+                    try
+                    {
+
+                        var val = item.GetValue(asd);
+                        if (val == null)
+                        {
+                            if (IgnoreIfNull)
+                                continue;
+                            else
+                            {
+                                val = "null";
+                                sonuc.Add(string.Format("\"{0}\":{1}", item.Name, val.ToString()));
+                                continue;
+                            };
+                        }
+                        if (item.PropertyType.IsPrimitive || item.PropertyType == typeof(string) || item.PropertyType == typeof(decimal))
+                        {
+                            if (item.PropertyType == typeof(string))
+                                Tirnak = "\"";
+                            else Tirnak = "";
+                            var str = string.Format("\"{0}\":{2}{1}{2}", item.Name, val.ToString(), Tirnak);
+                            sonuc.Add(str);
+                        }
+                        else
+                        {
+                            var IsEnumurable = item.PropertyType.GetInterfaces().Where(x => x.IsGenericType).Select(x => x.GetGenericTypeDefinition()).Contains(typeof(IEnumerable<>));
+                            var IsArray = item.PropertyType.IsArray;
+                            if (IsArray)
+                            {
+                                var ArrayDeger = (Array)val;
+                                var ArrayType = ArrayDeger.GetValue(0).GetType();
+                                if (ArrayType == typeof(string))
+                                    Tirnak = "\"";
+                                else Tirnak = "";
+                                if (ArrayType.IsPrimitive || ArrayType == typeof(string) || ArrayType == typeof(decimal))
+                                    sonuc.Add(string.Format("\"{0}\":[{2}{1}{2}]", item.Name, string.Join(string.Format("{0},{0}", Tirnak), ArrayDeger.Cast<object>()), Tirnak));
+                                else
+                                {
+                                    var prm = new List<string>();
+                                    foreach (var d in ArrayDeger)
+                                        prm.Add(string.Format("{0}", string.Join(",", SerializeObject(d))));
+                                    sonuc.Add(string.Format("\"{0}\":[{1}]", item.Name, string.Join(" , ", prm)));
+                                }
+                            }
+                            else if (IsEnumurable)
+                            {
+                                var ListDeger = ((System.Collections.IEnumerable)val).Cast<object>();
+                                var ListType = ListDeger.FirstOrDefault().GetType();
+                                if (ListType == typeof(string))
+                                    Tirnak = "\"";
+                                else Tirnak = "";
+                                if (ListType.IsPrimitive || ListType == typeof(string) || ListType == typeof(decimal))
+                                    sonuc.Add(string.Format("\"{0}\":[{2}{1}{2}]", item.Name, string.Join(string.Format("{0},{0}", Tirnak), ListDeger.Cast<object>()), Tirnak));
+                                else
+                                {
+                                    var prm = new List<string>();
+                                    foreach (var d in (IEnumerable<object>)val)
+                                        prm.Add(string.Format("{0}", string.Join(",", SerializeObject(d))));
+                                    sonuc.Add(string.Format("\"{0}\":[{1}]", item.Name, string.Join(",", prm)));
+                                }
+                            }
+                            else
+                                sonuc.Add(string.Format("\"{0}\":{1}", item.Name, string.Join(",", SerializeObject(item.GetValue(asd)))));
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        sonuc.Add("Hata Olustu " + e.Message);
+                    }
+
+                }
+
+            }
+            catch (Exception e)
+            {
+                if (asd != null)
+                    sonuc.Add(asd.GetType().Name);
+
+            }
+            var json = string.Format("{{{0}}}", string.Join(",", sonuc));
+            return json;
+
         }
     }
 }
