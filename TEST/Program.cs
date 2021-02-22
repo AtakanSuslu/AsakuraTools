@@ -160,8 +160,8 @@ namespace TEST
                 }}
             };
             var kk = new k1() { a2="asd"};
-            var aaa = Cevir.SerializeObject(k,IgnoreIfNull:true);
-            var a1aa = Cevir.SerializeObject(kk, IgnoreIfNull: true);
+            var aaa = Cevir.JsonSerializeObject(k,IgnoreIfNull:true);
+            var a1aa = Cevir.JsonSerializeObject(kk, IgnoreIfNull: true);
             var bb=JsonConvert.SerializeObject(k);
             var a = JsonConvert.DeserializeObject<k1>(bb);
             GC.Collect();
