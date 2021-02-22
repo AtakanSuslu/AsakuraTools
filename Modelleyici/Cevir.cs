@@ -89,7 +89,7 @@ namespace Modelleyici
                 rdr.Close();
                 throw e;
             }
-           
+
             var KolonSayisi = rdr.FieldCount;
             var Sonuc = new Dictionary<string, dynamic>();
             for (int i = 0; i < KolonSayisi; i++)
@@ -125,9 +125,26 @@ namespace Modelleyici
                 foreach (var prop in Propeties)
                 {
                     if (prop.GetCustomAttributes(typeof(NotMappedAttribute), false).Count() > 0) continue;
-                    dynamic val;
+                    object val;
                     if (Kayit.TryGetValue(BuyukKucukHarfDuyarli ? prop.Name : prop.Name.ToLower(), out val))
+                    {
+                        if (val==null)
+                            continue;
+                        if (ConvertType)
+                        {
+                            var Type = prop.PropertyType;
+                            if (Type.IsEnum)
+                                Type = typeof(int);
+                            if (Type.IsGenericType && Type.GetGenericTypeDefinition() == typeof(Nullable<>))
+                            {
+                                //nulable tipler için tip düzeltme?
+                            }
+                            else
+                                val = Convert.ChangeType(val, Type);
+
+                        }
                         prop.SetValue(model, val);
+                    }
                 }
                 Sonuc.Add(model);
             }
@@ -172,7 +189,7 @@ namespace Modelleyici
                 rdr.Close();
                 throw e;
             }
-           
+
             rdr.Close();
             return Sonuc;
         }
@@ -629,7 +646,7 @@ namespace Modelleyici
             }
             return dic;
         }
-        public static Y Modelle<Y,T>(this T a)
+        public static Y Modelle<Y, T>(this T a)
         {
             var Dic = new Dictionary<string, dynamic>();
             foreach (var p in a.GetType().GetProperties())
