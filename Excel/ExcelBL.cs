@@ -33,7 +33,7 @@ namespace Excel
                     //Ozellikler = "Excel 12.0;HDR=NO;";
                     break;
                 case IslemTipi.YAZMA:
-                    Ozellikler = "Excel 12.0;HDR=NO;";
+                    Ozellikler = "Excel 12.0;HDR=YES;";
                     if (!File.Exists(DosyaYolu))
                         File.Create(DosyaYolu);
                     break;
