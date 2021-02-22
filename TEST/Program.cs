@@ -7,6 +7,7 @@ using Excel;
 using Modelleyici;
 using System.Data.SqlClient;
 using TEST.Models;
+using Newtonsoft.Json;
 
 namespace TEST
 {
@@ -14,14 +15,23 @@ namespace TEST
     {
         static void Main(string[] args)
         {
-            SqlSelectTest();
-            SQLInserTest();
-            SQLUpdateTest();
-            SQLDeleteTest();
+            //SqlSelectTest();
+            //SQLInserTest();
+            //SQLUpdateTest();
+            //SQLDeleteTest();
+            //ExcelYaz();
+            serializeobject();
+            GC.Collect();
+            Console.Read();
+        }
+        static void ExcelYaz()
+        {
+            ExcelBL bl = new ExcelBL("text.xls", IslemTipi.YAZMA);
+            bl.Kapat();
         }
         static void SqlSelectTest()
         {
-            using (var con=new SqlConnection(""))
+            using (var con = new SqlConnection(""))
             {
                 /////////////
                 var y = new List<string>();
@@ -36,7 +46,7 @@ namespace TEST
                 com.CommandText = "select top 1 * from tUser";
                 //Veri tabanındaki model ile eşleşmeyen alanlar
                 y = new List<string>();
-                var user=com.Degisken<tUser>(ref y);
+                var user = com.Degisken<tUser>(ref y);
                 Console.WriteLine($"ID: {user.ID} Name: {user.Name}");
 
                 ///////////////
@@ -58,7 +68,7 @@ namespace TEST
                 {
                     Console.WriteLine($"ID: {u["ID"]} Name: {u["Name"]}");
                 }
-                
+
             }
         }
         static void SQLInserTest()
@@ -70,9 +80,9 @@ namespace TEST
                 Password = "password",
                 UserName = "Asakura"
             };
-            using (var con=new SqlConnection(""))
+            using (var con = new SqlConnection(""))
             {
-                var UserID=con.Insert(user);
+                var UserID = con.Insert(user);
             }
         }
         static void SQLUpdateTest()
@@ -86,7 +96,7 @@ namespace TEST
             };
             using (var con = new SqlConnection(""))
             {
-               var EfectedRowsCount=con.Update(user);
+                var EfectedRowsCount = con.Update(user);
             }
         }
         static void SQLDeleteTest()
@@ -107,6 +117,79 @@ namespace TEST
             bl.Kapat();
             //com.Degisken<ExcelBL>(ref k);
             //bl.EkleBaslik(bl.GetType(),"Sayfa1");
+        }
+        static void serializeobject()
+        {
+            var k = new k1()
+            {
+                //a1 = 1,
+                a2 = "1",
+                a3 = new List<int>() { 1, 23, 4 },
+                a4 = new List<string>() { "asd", "ghtdfh", "324234", "asd" },
+                a5 = new int[] { 12, 3, 5, 6457, 456 },
+                a6 = new string[] { "asda", "asdasda", "a" },
+                a7 = new k2()
+                {
+                    a1 = 1,
+                    a2 = "1",
+                    a3 = new List<int>() { 1, 23, 4 },
+                    a4 = new List<string>() { "asd", "ghtdfh", "324234", "asd" },
+                    a5 = new int[] { 12, 3, 5, 6457, 456 },
+                    a6 = new string[] { "asda", "asdasda", "a" }
+                },
+                a8 = new List<k2>() { new k2()
+                {
+                    a1 = 1,
+                    a2 = "1",
+                    a3 = new List<int>() { 1, 23, 4 },
+                    a4 = new List<string>() { "asd", "ghtdfh", "324234", "asd" },
+                    a5 = new int[] { 12, 3, 5, 6457, 456 },
+                    a6 = new string[] { "asda", "asdasda", "a" },
+                },new k2()
+                {
+                    a1 = 1,
+                    a2 = "1",
+                    a3 = new List<int>() { 1, 23, 4 },
+                    a4 = new List<string>() { "asd", "ghtdfh", "324234", "asd" },
+                    a5 = new int[] { 12, 3, 5, 6457, 456 },
+                    a6 = new string[] { "asda", "asdasda", "a" },
+                },new k2()
+                {
+                    a1 = 1,
+                    a2 = "1",
+                    a3 = new List<int>() { 1, 23, 4 },
+                    a4 = new List<string>() { "asd", "ghtdfh", "324234", "asd" },
+                    a5 = new int[] { 12, 3, 5, 6457, 456 },
+                    a6 = new string[] { "asda", "asdasda", "a" },
+                }}
+            };
+            var kk = new k1() { a2="asd"};
+            var aaa = Cevir.SerializeObject(k,IgnoreIfNull:true);
+            var a1aa = Cevir.SerializeObject(kk, IgnoreIfNull: true);
+            var bb=JsonConvert.SerializeObject(k);
+            var a = JsonConvert.DeserializeObject<k1>(bb);
+            GC.Collect();
+        }
+
+        public class k1
+        {
+            public int? a1 { get; set; }
+            public string a2 { get; set; }
+            public List<int> a3 { get; set; }
+            public List<string> a4 { get; set; }
+            public int[] a5 { get; set; }
+            public string[] a6 { get; set; }
+            public k2 a7 { get; set; }
+            public List<k2> a8 { get; set; }
+        }
+        public class k2
+        {
+            public int a1 { get; set; }
+            public string a2 { get; set; }
+            public List<int> a3 { get; set; }
+            public List<string> a4 { get; set; }
+            public int[] a5 { get; set; }
+            public string[] a6 { get; set; }
         }
     }
 }
