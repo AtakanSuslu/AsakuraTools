@@ -43,6 +43,9 @@ namespace Modelleyici
     #region #8-16.06.2019
     //NotMappedAttribute attribute ile normalde veritabanında olmayan alanlardan sorun çıkması engellendi
     #endregion
+    #region #9-16.06.2021
+    //Json serileştirme eklendi (Y)
+    #endregion
     public static class Cevir
     {
         #region DataReader
@@ -705,7 +708,7 @@ namespace Modelleyici
                                 {
                                     var prm = new List<string>();
                                     foreach (var d in ArrayDeger)
-                                        prm.Add(string.Format("{0}", string.Join(",", SerializeObject(d))));
+                                        prm.Add(string.Format("{0}", string.Join(",", JsonSerializeObject(d))));
                                     sonuc.Add(string.Format("\"{0}\":[{1}]", item.Name, string.Join(" , ", prm)));
                                 }
                             }
@@ -722,12 +725,12 @@ namespace Modelleyici
                                 {
                                     var prm = new List<string>();
                                     foreach (var d in (IEnumerable<object>)val)
-                                        prm.Add(string.Format("{0}", string.Join(",", SerializeObject(d))));
+                                        prm.Add(string.Format("{0}", string.Join(",", JsonSerializeObject(d))));
                                     sonuc.Add(string.Format("\"{0}\":[{1}]", item.Name, string.Join(",", prm)));
                                 }
                             }
                             else
-                                sonuc.Add(string.Format("\"{0}\":{1}", item.Name, string.Join(",", SerializeObject(item.GetValue(asd)))));
+                                sonuc.Add(string.Format("\"{0}\":{1}", item.Name, string.Join(",", JsonSerializeObject(item.GetValue(asd)))));
                         }
 
                     }
