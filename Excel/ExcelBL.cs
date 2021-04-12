@@ -105,7 +105,22 @@ namespace Excel
         public List<Dictionary<string, dynamic>> Tablo(string TabloIsmi, string Range = "", bool Trim = true, bool WhiteSpace = false)
         {
             com.CommandText = $"select * from [{TabloIsmi}${Range}]";
-            return com.Liste();
+            var Res= com.Liste();
+            for (int i = 0; i < Res.Count; i++)
+            {
+                var Item = Res[i];
+                var j = 0;
+                
+                foreach (var Key in Item.Keys)
+                    if (Item[Key]==null)
+                        j++;
+                if (j == Item.Keys.Count)
+                {
+                    Res.RemoveAt(i);
+                    i--;
+                }
+            }
+            return Res;
         }
         public List<Dictionary<string, dynamic>> ORKUN(string TabloIsmi, string Range = "", bool Trim = true, bool WhiteSpace = false)
         {
@@ -176,7 +191,10 @@ namespace Excel
                         j++;
                 }
                 if (j == propCount)
-                    Sonuc.RemoveRange(i, Sonuc.Count - i);
+                {
+                    Sonuc.RemoveAt(i);
+                    i--;
+                }
             }
             return Sonuc;
         }
