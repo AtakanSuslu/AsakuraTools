@@ -176,10 +176,7 @@ namespace Excel
                         j++;
                 }
                 if (j == propCount)
-                {
                     Sonuc.RemoveRange(i, Sonuc.Count - i);
-                    return Sonuc;
-                }
             }
             return Sonuc;
         }
@@ -426,7 +423,7 @@ namespace Excel
                     return "datetime";
                 case "String":
                 case "Char[]":
-                    return "text";
+                    return "Memo";
                 case "Char":
                     return "text";
                 case "Byte[]":
