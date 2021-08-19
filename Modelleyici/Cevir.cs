@@ -384,7 +384,7 @@ namespace Modelleyici
             if (IdentityCount > 0)
                 InsertText += "select @@identity";
             com.CommandText = InsertText;
-            var Propeties = Kayit.GetType().GetProperties();
+            var Propeties = Kayit.GetType().GetProperties().Where(x=>!x.GetGetMethod().IsVirtual).ToList();
             var SutunIsimleri = "";
             var ParametreIsimleri = "";
             //Eğer IdentityIsnert false ise key olan sutunları insert etme
@@ -495,7 +495,7 @@ namespace Modelleyici
                 con.Open();
             var com = con.CreateCommand();
             com.CommandText = string.Format("update {0} set *upt where *kosul", TabloIsmi);
-            var Propeties = Tip.GetProperties();
+            var Propeties = Tip.GetProperties().Where(x => !x.GetGetMethod().IsVirtual).ToList();
 
 
             var KeyProp = Propeties.FirstOrDefault(x => Attribute.IsDefined(x, typeof(KeyAttribute)));
@@ -602,7 +602,7 @@ namespace Modelleyici
             var TabloIsmi = typeof(T).Name.ToString();
             var com = con.CreateCommand();
             com.CommandText = string.Format("select *sutunlar from {0}", TabloIsmi);
-            var Propeties = typeof(T).GetProperties();
+            var Propeties = typeof(T).GetProperties().Where(x=>!x.GetGetMethod().IsVirtual).ToList();
             var SutunIsimleri = "";
             foreach (var prop in Propeties)
             {
