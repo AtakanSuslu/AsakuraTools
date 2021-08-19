@@ -125,28 +125,35 @@ namespace Modelleyici
             foreach (var Kayit in Kayitlar)
             {
                 var model = Activator.CreateInstance<T>();
-                foreach (var prop in Propeties)
+                if (IsPrimitive(typeof(T)))
                 {
-                    if (prop.GetCustomAttributes(typeof(NotMappedAttribute), false).Count() > 0) continue;
-                    object val;
-                    if (Kayit.TryGetValue(BuyukKucukHarfDuyarli ? prop.Name : prop.Name.ToLower(), out val))
+                    Sonuc.Add(Kayit[Kayit.Keys.First()]);
+                }
+                else
+                {
+                    foreach (var prop in Propeties)
                     {
-                        if (val==null)
-                            continue;
-                        if (ConvertType)
+                        if (prop.GetCustomAttributes(typeof(NotMappedAttribute), false).Count() > 0) continue;
+                        object val;
+                        if (Kayit.TryGetValue(BuyukKucukHarfDuyarli ? prop.Name : prop.Name.ToLower(), out val))
                         {
-                            var Type = prop.PropertyType;
-                            if (Type.IsEnum)
-                                Type = typeof(int);
-                            if (Type.IsGenericType && Type.GetGenericTypeDefinition() == typeof(Nullable<>))
+                            if (val == null)
+                                continue;
+                            if (ConvertType)
                             {
-                                //nulable tipler için tip düzeltme?
-                            }
-                            else
-                                val = Convert.ChangeType(val, Type);
+                                var Type = prop.PropertyType;
+                                if (Type.IsEnum)
+                                    Type = typeof(int);
+                                if (Type.IsGenericType && Type.GetGenericTypeDefinition() == typeof(Nullable<>))
+                                {
+                                    //nulable tipler için tip düzeltme?
+                                }
+                                else
+                                    val = Convert.ChangeType(val, Type);
 
+                            }
+                            prop.SetValue(model, val);
                         }
-                        prop.SetValue(model, val);
                     }
                 }
                 Sonuc.Add(model);
@@ -657,7 +664,10 @@ namespace Modelleyici
             var Res = Dic.Modelle<Y>();
             return Res;
         }
-
+        private static bool IsPrimitive(Type t)
+        {
+            return (t.IsPrimitive || t == typeof(string) || t == typeof(decimal));
+        }
         public static string JsonSerializeObject<T>(T asd, bool IgnoreIfNull = false)
         {
             if (asd == null)
@@ -683,7 +693,7 @@ namespace Modelleyici
                                 continue;
                             };
                         }
-                        if (item.PropertyType.IsPrimitive || item.PropertyType == typeof(string) || item.PropertyType == typeof(decimal))
+                        if (IsPrimitive(item.PropertyType))
                         {
                             if (item.PropertyType == typeof(string))
                                 Tirnak = "\"";
@@ -702,7 +712,7 @@ namespace Modelleyici
                                 if (ArrayType == typeof(string))
                                     Tirnak = "\"";
                                 else Tirnak = "";
-                                if (ArrayType.IsPrimitive || ArrayType == typeof(string) || ArrayType == typeof(decimal))
+                                if (IsPrimitive(ArrayType))
                                     sonuc.Add(string.Format("\"{0}\":[{2}{1}{2}]", item.Name, string.Join(string.Format("{0},{0}", Tirnak), ArrayDeger.Cast<object>()), Tirnak));
                                 else
                                 {
@@ -719,7 +729,7 @@ namespace Modelleyici
                                 if (ListType == typeof(string))
                                     Tirnak = "\"";
                                 else Tirnak = "";
-                                if (ListType.IsPrimitive || ListType == typeof(string) || ListType == typeof(decimal))
+                                if (IsPrimitive(ListType))
                                     sonuc.Add(string.Format("\"{0}\":[{2}{1}{2}]", item.Name, string.Join(string.Format("{0},{0}", Tirnak), ListDeger.Cast<object>()), Tirnak));
                                 else
                                 {
