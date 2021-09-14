@@ -17,11 +17,13 @@ namespace Excel
         OleDbCommand com;
         OleDbConnection con;
         public IslemTipi IslemTipi { get; set; }
+        public bool IlkSatirHeader { get; set; }
         public string DosyaYolu { get; set; }
-        public ExcelBL(string DosyaYolu, IslemTipi IslemTipi)
+        public ExcelBL(string DosyaYolu, IslemTipi IslemTipi,bool IlkSatirHeader=true)
         {
             this.DosyaYolu = DosyaYolu;
             this.IslemTipi = IslemTipi;
+            this.IlkSatirHeader = IlkSatirHeader;
             ConnectionOlustur();
             com = con.CreateCommand();
         }
@@ -31,11 +33,10 @@ namespace Excel
             switch (IslemTipi)
             {
                 case IslemTipi.OKUMA:
-                    Ozellikler = "Excel 12.0;HDR=YES;IMEX=1;";
-                    //Ozellikler = "Excel 12.0;HDR=NO;";
+                    Ozellikler =$"Excel 12.0;{(IlkSatirHeader? "HDR=YES;IMEX=1;":"HDR=NO;")}";
                     break;
                 case IslemTipi.YAZMA:
-                    Ozellikler = "Excel 12.0 Xml;HDR=YES;";
+                    Ozellikler = $"Excel 12.0 Xml;{(IlkSatirHeader? "HDR=YES;":"HDR=NO")}";
                     break;
             }
             con = new OleDbConnection($"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={DosyaYolu};Extended Properties=\"{Ozellikler}\"");
